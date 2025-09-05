@@ -2,4 +2,10 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="azul_fondo">#E6F0FA</color> <!-- blanco azulado -->
+    <color name="azul_fondo_claro">#F0F8FF</color>
+    <color name="azul_electrico">#1E90FF</color> <!-- azul eléctrico -->
+    <color name="rojo">#FF4444</color>
+    <color name="marfil">#FFFFF0</color>
+    <color name="hueso">#F5F5DC</color>
 </resources>

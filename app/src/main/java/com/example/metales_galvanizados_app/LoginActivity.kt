@@ -18,9 +18,12 @@ class LoginActivity : AppCompatActivity() {
             val user = binding.etUser.text.toString()
             val pass = binding.etPassword.text.toString()
             if (user == "admin" && pass == "admin") {
-                startActivity(Intent(this, MapActivity::class.java))
+                startActivity(Intent(this, SplashActivity::class.java).apply {
+                    putExtra("next", "main")
+                })
                 finish()
-            } else {
+            }
+            else {
                 Toast.makeText(this, "Credenciales incorrectas", Toast.LENGTH_SHORT).show()
             }
         }
