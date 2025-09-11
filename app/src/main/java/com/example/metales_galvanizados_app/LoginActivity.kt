@@ -15,17 +15,43 @@ class LoginActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.btnLogin.setOnClickListener {
-            val user = binding.etUser.text.toString()
-            val pass = binding.etPassword.text.toString()
-            if (user == "admin" && pass == "admin") {
-                startActivity(Intent(this, SplashActivity::class.java).apply {
-                    putExtra("next", "main")
-                })
-                finish()
+            val user = binding.etUser.text.toString().trim()
+            val pass = binding.etPassword.text.toString().trim()
+
+            when {
+                // Usuario administrador - va a MainActivity
+                user == "app.megacero" && pass == "qwerty12345" -> {
+                    startActivity(Intent(this, SplashActivity::class.java).apply {
+                        putExtra("next", "main")
+                        putExtra("user_type", "admin")
+                        putExtra("username", user)
+                    })
+                    finish()
+                }
+
+                // Usuario normal - va a MapActivity
+                user == "usuario.megacero" && pass == "usuario123" -> {
+                    startActivity(Intent(this, SplashActivity::class.java).apply {
+                        putExtra("next", "map")
+                        putExtra("user_type", "user")
+                        putExtra("username", user)
+                    })
+                    finish()
+                }
+
+                else -> {
+                    Toast.makeText(this, "Credenciales incorrectas", Toast.LENGTH_SHORT).show()
+                    // Limpiar campos después de error
+                    binding.etPassword.setText("")
+                    binding.etUser.requestFocus()
+                }
             }
-            else {
-                Toast.makeText(this, "Credenciales incorrectas", Toast.LENGTH_SHORT).show()
-            }
+        }
+
+        // Opcional: Permitir login con Enter
+        binding.etPassword.setOnEditorActionListener { _, _, _ ->
+            binding.btnLogin.performClick()
+            true
         }
     }
 }

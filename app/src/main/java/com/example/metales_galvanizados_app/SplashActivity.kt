@@ -46,7 +46,7 @@ class SplashActivity : AppCompatActivity() {
             logo.startAnimation(bounce)
         }, 1500)
 
-        // ANIMACIÓN DE PUNTOS DE CARGA - ESTO ES LO QUE NECESITAS AGREGAR
+        // ANIMACIÓN DE PUNTOS DE CARGA
         dotsHandler = Handler(Looper.getMainLooper())
         dotsRunnable = object : Runnable {
             override fun run() {
@@ -57,13 +57,30 @@ class SplashActivity : AppCompatActivity() {
         }
         dotsHandler.postDelayed(dotsRunnable, 500)
 
-        // Esperar 3 segundos y luego redirigir
+        // Obtener datos del intent
+        val next = intent.getStringExtra("next")
+        val userType = intent.getStringExtra("user_type")
+        val username = intent.getStringExtra("username")
+
+        // Esperar 3 segundos y luego redirigir según el tipo de usuario
         Handler(Looper.getMainLooper()).postDelayed({
-            val next = intent.getStringExtra("next")
-            if (next == "main") {
-                startActivity(Intent(this, MainActivity::class.java))
-            } else {
-                startActivity(Intent(this, LoginActivity::class.java))
+            when (next) {
+                "main" -> {
+                    startActivity(Intent(this, MainActivity::class.java).apply {
+                        putExtra("user_type", userType)
+                        putExtra("username", username)
+                    })
+                }
+                "map" -> {
+                    startActivity(Intent(this, MapActivity::class.java).apply {
+                        putExtra("user_type", userType)
+                        putExtra("username", username)
+                    })
+                }
+                else -> {
+                    // Fallback al login si no hay redirección específica
+                    startActivity(Intent(this, LoginActivity::class.java))
+                }
             }
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
             finish()
@@ -73,6 +90,8 @@ class SplashActivity : AppCompatActivity() {
     // No olvides detener la animación al salir de la actividad
     override fun onDestroy() {
         super.onDestroy()
-        dotsHandler.removeCallbacks(dotsRunnable)
+        if (::dotsHandler.isInitialized) {
+            dotsHandler.removeCallbacks(dotsRunnable)
+        }
     }
 }
