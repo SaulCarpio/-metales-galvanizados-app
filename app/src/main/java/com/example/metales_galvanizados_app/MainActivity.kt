@@ -32,26 +32,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnNotaVenta.setOnClickListener {
-            abrirNotaVenta()
+            startActivity(Intent(this, NotaVenta::class.java))
         }
 
         binding.btnCerrarSesion.setOnClickListener {
             cerrarSesion()
-        }
-    }
-
-    private fun abrirNotaVenta() {
-        val grupoWhatsappId = "LVphd6goWyOHnwZKBpNt9Q" // ID del grupo de WhatsApp
-        val urlWhatsapp = "https://chat.whatsapp.com/$grupoWhatsappId"
-
-        try {
-            // Intent para abrir WhatsApp directamente si está instalado
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlWhatsapp))
-            startActivity(intent)
-        } catch (e: Exception) {
-            // No está instalado, abrir en el navegador
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlWhatsapp))
-            startActivity(intent)
         }
     }
 

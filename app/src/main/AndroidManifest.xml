@@ -2,9 +2,35 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Permisos de red -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Permisos biométricos -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+    <!-- Permisos de ubicación -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Permisos de cámara -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- 🔹 CARACTERÍSTICAS DE HARDWARE NECESARIAS -->
+    <!-- Cámara principal -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" />
+
+    <!-- Autofocus (opcional pero recomendado) -->
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
+
+    <!-- Cámara trasera (opcional) -->
+    <uses-feature
+        android:name="android.hardware.camera.back"
+        android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -16,10 +42,24 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Metalesgalvanizadosapp"
         tools:targetApi="31">
-        <!-- Activity de Coti -->
+
+        <!-- 🔹 META-DATA PARA ML KIT (Importante) -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr" />
+
+        <!-- Activity de NotaVenta -->
+        <activity
+            android:name=".NotaVenta"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- Activity de Cotización -->
         <activity
             android:name=".CotizacionActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <!-- Pantalla de Carga -->
         <activity
             android:name=".SplashActivity"
@@ -27,25 +67,33 @@
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- Login -->
+        </activity>
+
+        <!-- Login -->
         <activity
             android:name=".LoginActivity"
-            android:exported="true"
-            android:screenOrientation="portrait" /> <!-- Mapa -->
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- Mapa -->
         <activity
             android:name=".MapActivity"
-            android:exported="true"
-            android:screenOrientation="portrait" /> <!-- Dashboard Main -->
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- Dashboard Main -->
         <activity
             android:name=".MainActivity"
-            android:exported="true"
+            android:exported="false"
             android:screenOrientation="portrait" />
+
+        <!-- Meta-data para fuentes -->
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />
+
     </application>
 
 </manifest>
