@@ -3,15 +3,26 @@ package com.example.metales_galvanizados_app
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.metales_galvanizados_app.databinding.ActivityLoginBinding
+import com.example.metales_galvanizados_app.network.LoginRequest
+import com.example.metales_galvanizados_app.network.RetrofitClient
+import kotlinx.coroutines.launch
 import java.util.concurrent.Executor
 
+
+// ===================================================================
+// CLASE DE LA ACTIVIDAD
+// (NOTA: Todo el código de red ha sido movido a la carpeta 'network')
+// ===================================================================
 class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private lateinit var executor: Executor
@@ -26,47 +37,83 @@ class LoginActivity : AppCompatActivity() {
 
         sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
 
-        // Configurar autenticación biométrica
         setupBiometricAuthentication()
-
-        // Verificar si debe mostrar autenticación biométrica automáticamente
         checkAndShowBiometricAuth()
 
         binding.btnLogin.setOnClickListener {
             val user = binding.etUser.text.toString().trim()
             val pass = binding.etPassword.text.toString().trim()
-            authenticateUser(user, pass)
+
+            if (user.isNotEmpty() && pass.isNotEmpty()) {
+                authenticateUserWithApi(user, pass)
+            } else {
+                Toast.makeText(this, "Por favor, ingrese usuario y contraseña", Toast.LENGTH_SHORT).show()
+            }
         }
 
-        // Opcional: Permitir login con Enter
         binding.etPassword.setOnEditorActionListener { _, _, _ ->
             binding.btnLogin.performClick()
             true
         }
     }
 
-    private fun setupBiometricAuthentication() {
-        executor = ContextCompat.getMainExecutor(this)
+    private fun authenticateUserWithApi(user: String, pass: String) {
+        // Asegúrate de tener un ProgressBar con id 'progressBar' en tu activity_login.xml
+        binding.progressBar.visibility = View.VISIBLE
+        binding.btnLogin.isEnabled = false
 
-        biometricPrompt = BiometricPrompt(this, executor,
-            object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    super.onAuthenticationError(errorCode, errString)
-                    if (errorCode != BiometricPrompt.ERROR_USER_CANCELED &&
-                        errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
-                        Toast.makeText(applicationContext, "Error: $errString", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            try {
+                // Ahora usamos las clases importadas desde el paquete 'network'
+                val request = LoginRequest(username = user, password = pass)
+                val response = RetrofitClient.instance.login(request)
+
+                binding.progressBar.visibility = View.GONE
+                binding.btnLogin.isEnabled = true
+
+                if (response.isSuccessful) {
+                    val loginResponse = response.body()
+                    if (loginResponse?.success == true) {
+                        val userRole = loginResponse.role
+                        val nextActivity = if (userRole == "admin") "main" else "map"
+
+                        Toast.makeText(this@LoginActivity, loginResponse.message, Toast.LENGTH_SHORT).show()
+                        handleSuccessfulLogin(user, pass, userRole ?: "user", nextActivity)
+                    } else {
+                        Toast.makeText(this@LoginActivity, loginResponse?.message ?: "Credenciales incorrectas", Toast.LENGTH_SHORT).show()
+                        binding.etPassword.setText("")
                     }
-                    // No hacer nada más, el usuario puede usar login manual
+                } else {
+                    val errorMsg = "Error: ${response.code()} (${response.message()})"
+                    Toast.makeText(this@LoginActivity, errorMsg, Toast.LENGTH_LONG).show()
                 }
 
+            } catch (e: Exception) {
+                binding.progressBar.visibility = View.GONE
+                binding.btnLogin.isEnabled = true
+                Toast.makeText(this@LoginActivity, "No se pudo conectar al servidor.", Toast.LENGTH_LONG).show()
+                Log.e("LoginActivity", "Error de conexión: ${e.message}")
+            }
+        }
+    }
+
+    private fun setupBiometricAuthentication() {
+        executor = ContextCompat.getMainExecutor(this)
+        biometricPrompt = BiometricPrompt(this, executor,
+            object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
-                    // Obtener credenciales guardadas
                     val savedUser = sharedPreferences.getString("saved_user", "")
                     val savedPass = sharedPreferences.getString("saved_pass", "")
-
                     if (!savedUser.isNullOrEmpty() && !savedPass.isNullOrEmpty()) {
-                        authenticateUser(savedUser, savedPass)
+                        authenticateUserWithApi(savedUser, savedPass)
+                    }
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    if (errorCode != BiometricPrompt.ERROR_USER_CANCELED && errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                        Toast.makeText(applicationContext, "Error: $errString", Toast.LENGTH_SHORT).show()
                     }
                 }
 
@@ -88,36 +135,8 @@ class LoginActivity : AppCompatActivity() {
         val hasSavedCredentials = sharedPreferences.getBoolean("has_saved_credentials", false)
         val isBiometricAvailable = BiometricManager.from(this)
             .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
-
-        // Si tiene credenciales guardadas y biométrica disponible, mostrar automáticamente
         if (hasSavedCredentials && isBiometricAvailable) {
-            // Pequeño delay para que se cargue la UI completamente
-            binding.root.postDelayed({
-                biometricPrompt.authenticate(promptInfo)
-            }, 500)
-        }
-    }
-
-    private fun authenticateUser(user: String, pass: String) {
-        when {
-            // Usuario administrador - va a MainActivity
-            user == "app.megacero" && pass == "qwerty12345" -> {
-                val userType = "admin"
-                val nextActivity = "main"
-                handleSuccessfulLogin(user, pass, userType, nextActivity)
-            }
-            // Usuario normal - va a MapActivity
-            user == "usuario.megacero" && pass == "usuario123" -> {
-                val userType = "user"
-                val nextActivity = "map"
-                handleSuccessfulLogin(user, pass, userType, nextActivity)
-            }
-            else -> {
-                Toast.makeText(this, "Credenciales incorrectas", Toast.LENGTH_SHORT).show()
-                // Limpiar campos después de error
-                binding.etPassword.setText("")
-                binding.etUser.requestFocus()
-            }
+            binding.root.postDelayed({ biometricPrompt.authenticate(promptInfo) }, 500)
         }
     }
 
@@ -125,12 +144,9 @@ class LoginActivity : AppCompatActivity() {
         val hasSavedCredentials = sharedPreferences.getBoolean("has_saved_credentials", false)
         val isBiometricAvailable = BiometricManager.from(this)
             .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
-
-        // Si no tiene credenciales guardadas y el dispositivo soporta huella, preguntar
         if (!hasSavedCredentials && isBiometricAvailable) {
             showEnableFingerprintDialog(user, pass, userType, nextActivity)
         } else {
-            // Ir directamente a la actividad
             navigateToNextActivity(user, userType, nextActivity)
         }
     }
@@ -138,19 +154,17 @@ class LoginActivity : AppCompatActivity() {
     private fun showEnableFingerprintDialog(user: String, pass: String, userType: String, nextActivity: String) {
         AlertDialog.Builder(this)
             .setTitle("¿Habilitar huella digital?")
-            .setMessage("¿Desea habilitar la autenticación por huella digital para futuros accesos?")
-            .setPositiveButton("Sí") { dialog, which ->
-                // Guardar credenciales para uso futuro con huella
+            .setMessage("¿Desea habilitar la autenticación por huella para futuros accesos?")
+            .setPositiveButton("Sí") { _, _ ->
                 sharedPreferences.edit()
                     .putString("saved_user", user)
                     .putString("saved_pass", pass)
                     .putBoolean("has_saved_credentials", true)
                     .apply()
-
-                Toast.makeText(this, "Huella digital habilitada. La próxima vez se activará automáticamente.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Huella digital habilitada.", Toast.LENGTH_LONG).show()
                 navigateToNextActivity(user, userType, nextActivity)
             }
-            .setNegativeButton("No") { dialog, which ->
+            .setNegativeButton("No") { _, _ ->
                 navigateToNextActivity(user, userType, nextActivity)
             }
             .setCancelable(false)
@@ -158,11 +172,14 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun navigateToNextActivity(user: String, userType: String, nextActivity: String) {
-        startActivity(Intent(this, SplashActivity::class.java).apply {
-            putExtra("next", nextActivity)
-            putExtra("user_type", userType)
-            putExtra("username", user)
-        })
+        val intent = when (nextActivity) {
+            "main" -> Intent(this, MainActivity::class.java)
+            "map" -> Intent(this, MapActivity::class.java)
+            else -> Intent(this, SplashActivity::class.java) // Fallback
+        }
+        intent.putExtra("user_type", userType)
+        intent.putExtra("username", user)
+        startActivity(intent)
         finish()
     }
 }
