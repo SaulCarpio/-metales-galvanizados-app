@@ -19,10 +19,13 @@ data class LoginResponse(
 )
 
 // --- Modelos para Rutas ---
+
+// ▼▼▼ ESTA ES LA CLASE MODIFICADA ▼▼▼
 data class FindRouteRequest(
-    val origin: List<Double>,
-    val destination: List<Double>
+    // Ahora espera una única lista llamada "waypoints"
+    val waypoints: List<List<Double>>
 )
+// ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
 
 data class RouteData(
     val coordinates: List<List<Double>>,

@@ -1,414 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="#F5F5F5">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-        <!-- Vista previa de la cámara -->
-        <androidx.camera.view.PreviewView
-            android:id="@+id/previewView"
-            android:layout_width="match_parent"
-            android:layout_height="600dp" />
-
-        <!-- Botón para capturar -->
-        <Button
-            android:id="@+id/btnCapture"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:text="Escanear Proforma"
-            android:textSize="16sp"
-            android:enabled="false"
-            android:backgroundTint="#1E90FF" />
-
-        <!-- Resultado OCR -->
-        <TextView
-            android:id="@+id/txtResult"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_marginHorizontal="16dp"
-            android:background="#FFFFFF"
-            android:elevation="2dp"
-            android:gravity="center"
-            android:padding="8dp"
-            android:text="Cargando cámara..."
-            android:textSize="12sp" />
-
-        <!-- FORMULARIO COMPLETO -->
         <LinearLayout
-            android:id="@+id/formLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:orientation="vertical"
-            android:background="#FFFFFF"
-            android:elevation="4dp"
-            android:padding="16dp">
+            android:orientation="vertical">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="PROFORMA - MEGACERO S.R.L."
-                android:textStyle="bold"
-                android:textSize="18sp"
-                android:textColor="#1E90FF"
-                android:layout_marginBottom="16dp" />
-
-            <!-- DATOS PRINCIPALES -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="DATOS PRINCIPALES"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:textColor="#4CAF50"
-                android:layout_marginBottom="8dp" />
-
-            <!-- Número de Proforma -->
-            <EditText
-                android:id="@+id/edtNroProforma"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textColorHint="@color/black"
-                android:hint="Nro. Proforma (Ej: 003248)"
-                android:inputType="text"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/edittext_background"
-                android:padding="12dp" />
-
-            <!-- Cliente -->
-            <EditText
-                android:id="@+id/edtCliente"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textColorHint="@color/black"
-                android:hint="Cliente"
-                android:inputType="textPersonName"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/edittext_background"
-                android:padding="12dp" />
-
-            <!-- Celular -->
-            <EditText
-                android:id="@+id/edtCel"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textColorHint="@color/black"
-                android:hint="Celular"
-                android:inputType="phone"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/edittext_background"
-                android:padding="12dp" />
-
-            <!-- Vendedor -->
-            <EditText
-                android:id="@+id/edtVendedor"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textColorHint="@color/black"
-                android:hint="Vendedor"
-                android:inputType="textPersonName"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/edittext_background"
-                android:padding="12dp" />
-
-            <!-- Fecha -->
-            <EditText
-                android:id="@+id/edtFecha"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textColorHint="@color/black"
-                android:hint="Fecha (dd/mm/yyyy)"
-                android:inputType="date"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/edittext_background"
-                android:padding="12dp" />
-
-            <!-- DATOS DEL PRODUCTO -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColorHint="@color/black"
-                android:text="PRODUCTO"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:textColor="#FF9800"
-                android:layout_marginBottom="8dp" />
-
-            <!-- Producto -->
-            <EditText
-                android:id="@+id/edtProducto"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textColorHint="@color/black"
-                android:hint="Producto (Ej: ONDULADO, TEJA COLONIAL)"
-                android:inputType="text"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/edittext_background"
-                android:padding="12dp" />
-
-            <!-- Color -->
-            <EditText
-                android:id="@+id/edtColor"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textColorHint="@color/black"
-                android:hint="Color"
-                android:inputType="text"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/edittext_background"
-                android:padding="12dp" />
-
-            <!-- Fila: Cantidad y Longitud -->
+            <!-- FORMULARIO SIMPLIFICADO -->
             <LinearLayout
+                android:id="@+id/formLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="2"
-                android:layout_marginBottom="8dp">
+                android:layout_margin="16dp"
+                android:orientation="vertical"
+                android:background="#FFFFFF"
+                android:elevation="4dp"
+                android:padding="16dp">
 
-                <EditText
-                    android:id="@+id/edtCantidad"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:textColorHint="@color/black"
-                    android:hint="Cantidad"
-                    android:inputType="number"
-                    android:background="@drawable/edittext_background"
-                    android:padding="12dp" />
-
-                <EditText
-                    android:id="@+id/edtLongitud"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:textColorHint="@color/black"
-                    android:hint="Longitud (m)"
-                    android:inputType="numberDecimal"
-                    android:background="@drawable/edittext_background"
-                    android:padding="12dp" />
-
-            </LinearLayout>
-
-            <!-- Fila: Precio Unitario e Importe -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="2"
-                android:layout_marginBottom="16dp">
-
-                <EditText
-                    android:id="@+id/edtPrecioUnitario"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:textColorHint="@color/black"
-                    android:hint="Precio Unitario Bs"
-                    android:inputType="numberDecimal"
-                    android:background="@drawable/edittext_background"
-                    android:padding="12dp" />
-
-                <EditText
-                    android:id="@+id/edtImporte"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:textColorHint="@color/black"
-                    android:hint="Importe Bs"
-                    android:inputType="numberDecimal"
-                    android:background="@drawable/edittext_background"
-                    android:padding="12dp" />
-
-            </LinearLayout>
-
-            <!-- TOTALES -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="TOTALES"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:textColor="#E91E63"
-                android:layout_marginBottom="8dp" />
-
-            <!-- Subtotal -->
-            <EditText
-                android:id="@+id/edtSubtotal"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textColorHint="@color/black"
-                android:hint="Subtotal Bs"
-                android:inputType="numberDecimal"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/edittext_background"
-                android:padding="12dp" />
-
-            <!-- Total -->
-            <EditText
-                android:id="@+id/edtTotal"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textColorHint="@color/black"
-                android:hint="Total Bs"
-                android:inputType="numberDecimal"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/edittext_background"
-                android:padding="12dp" />
-
-            <!-- Fila: Anticipo y Saldo -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="2"
-                android:layout_marginBottom="16dp">
-
-                <EditText
-                    android:id="@+id/edtAnticipo"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:textColorHint="@color/black"
-                    android:hint="Anticipo Bs"
-                    android:inputType="numberDecimal"
-                    android:background="@drawable/edittext_background"
-                    android:padding="12dp" />
-
-                <EditText
-                    android:id="@+id/edtSaldo"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:textColorHint="@color/black"
-                    android:hint="Saldo Bs"
-                    android:inputType="numberDecimal"
-                    android:background="@drawable/edittext_background"
-                    android:padding="12dp" />
-
-            </LinearLayout>
-
-            <!-- DATOS ADICIONALES -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="DATOS ADICIONALES"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:textColor="#9C27B0"
-                android:layout_marginBottom="8dp" />
-
-            <!-- Fecha de Entrega -->
-            <EditText
-                android:id="@+id/edtFechaEntrega"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textColorHint="@color/black"
-                android:hint="Fecha de Entrega (dd/mm/yyyy)"
-                android:inputType="date"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/edittext_background"
-                android:padding="12dp" />
-
-            <!-- Nombre Cliente (si es diferente) -->
-            <EditText
-                android:id="@+id/edtNombreCliente"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textColorHint="@color/black"
-                android:hint="Nombre completo del cliente"
-                android:inputType="textPersonName"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/edittext_background"
-                android:padding="12dp" />
-
-            <!-- NIT -->
-            <EditText
-                android:id="@+id/edtNit"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textColorHint="@color/black"
-                android:hint="NIT"
-                android:inputType="number"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/edittext_background"
-                android:padding="12dp" />
-
-            <!-- Fila: Firmas -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="2"
-                android:layout_marginBottom="20dp">
-
-                <EditText
-                    android:id="@+id/edtFirmaCaja"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:textColorHint="@color/black"
-                    android:hint="Firma Caja"
-                    android:inputType="textPersonName"
-                    android:background="@drawable/edittext_background"
-                    android:padding="12dp" />
-
-                <EditText
-                    android:id="@+id/edtFirmaCliente"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:textColorHint="@color/black"
-                    android:hint="Firma Cliente"
-                    android:inputType="textPersonName"
-                    android:background="@drawable/edittext_background"
-                    android:padding="12dp" />
-
-            </LinearLayout>
-
-            <!-- BOTONES DE ACCIÓN -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="2">
-
-                <Button
-                    android:id="@+id/btnGuardar"
-                    android:layout_width="0dp"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:text="Guardar"
-                    android:backgroundTint="#4CAF50" />
+                    android:text="NUEVA NOTA DE VENTA"
+                    android:textStyle="bold"
+                    android:textSize="18sp"
+                    android:textColor="#1E90FF"
+                    android:layout_marginBottom="16dp" />
 
-                <Button
-                    android:id="@+id/btnLimpiar"
-                    android:layout_width="0dp"
+                <!-- Campos requeridos -->
+                <EditText android:id="@+id/edtNroProforma" style="@style/FormEditText" android:hint="Nro. Proforma" android:inputType="text" android:textColorHint="@color/black" android:textColor="@color/black"/>
+                <EditText android:id="@+id/edtCliente" style="@style/FormEditText" android:hint="Cliente" android:inputType="textPersonName" android:textColorHint="@color/black" android:textColor="@color/black"/>
+                <EditText android:id="@+id/edtVendedor" style="@style/FormEditText" android:hint="Vendedor" android:inputType="textPersonName" android:textColorHint="@color/black" android:textColor="@color/black"/>
+                <EditText android:id="@+id/edtFecha" style="@style/FormEditText" android:hint="Fecha (dd/mm/yyyy)" android:inputType="date" android:textColorHint="@color/black" android:textColor="@color/black"/>
+                <!-- Producto (Ahora un Spinner) -->
+                <Spinner
+                    android:id="@+id/spinnerProducto"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/edittext_background"
+                    android:padding="12dp"
+                    android:textColor="@color/black"/>
+                <EditText
+                    android:id="@+id/edtColor"
+                    style="@style/FormEditText"
+                    android:hint="Color"
+                    android:inputType="text"
+                    android:textColorHint="@color/black"
+                    android:textColor="@color/black"/>
+                <EditText android:id="@+id/edtCantidad" style="@style/FormEditText" android:hint="Cantidad" android:inputType="number" android:textColorHint="@color/black" android:textColor="@color/black"/>
+                <EditText android:id="@+id/edtLongitud" style="@style/FormEditText" android:hint="Longitud (m)" android:inputType="numberDecimal" android:textColorHint="@color/black" android:textColor="@color/black"/>
+                <EditText android:id="@+id/edtPrecioUnitario" style="@style/FormEditText" android:hint="Precio Unitario Bs" android:inputType="numberDecimal" android:textColorHint="@color/black" android:textColor="@color/black"/>
+                <EditText android:id="@+id/edtTotal" style="@style/FormEditText" android:hint="Total Bs" android:inputType="numberDecimal" android:textColorHint="@color/black" android:textColor="@color/black"/>
+
+                <!-- Botones de Acción -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:text="Limpiar"
-                    android:backgroundTint="#FF5722" />
+                    android:orientation="horizontal"
+                    android:layout_marginTop="16dp">
 
+                    <Button
+                        android:id="@+id/btnGuardar"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="Guardar"
+                        android:backgroundTint="#4CAF50" />
+
+                    <Button
+                        android:id="@+id/btnLimpiar"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="Limpiar"
+                        android:backgroundTint="#FF9800" />
+                </LinearLayout>
             </LinearLayout>
 
+            <!-- Título de la lista -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="NOTAS GUARDADAS"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="16dp"/>
+
+            <!-- Lista de notas de venta -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerViewNotas"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="16dp"/>
         </LinearLayout>
-
-    </LinearLayout>
-
-</ScrollView>
+    </ScrollView>
+</LinearLayout>

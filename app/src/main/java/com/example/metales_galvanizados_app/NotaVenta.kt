@@ -1,449 +1,260 @@
 package com.example.metales_galvanizados_app
 
 import android.Manifest
-import android.content.pm.PackageManager
+import android.app.DatePickerDialog
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.text.InputType
 import android.util.Log
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.*
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.core.content.ContextCompat
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import androidx.core.content.FileProvider
+import androidx.core.net.toUri
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.regex.Pattern
 
-class NotaVenta : AppCompatActivity() {
+class NotaVenta : AppCompatActivity(), NotaVentaAdapter.OnItemClickListener {
 
-    private var previewView: androidx.camera.view.PreviewView? = null
-    private var btnCapture: Button? = null
-    private var txtResult: TextView? = null
-    private var formLayout: LinearLayout? = null
+    // Vistas
+    private lateinit var edtNroProforma: EditText
+    private lateinit var edtCliente: EditText
+    private lateinit var edtVendedor: EditText
+    private lateinit var edtFecha: EditText
+    private lateinit var spinnerProducto: Spinner // <-- CAMBIO: Ahora es un Spinner
+    private lateinit var edtColor: EditText
+    private lateinit var edtCantidad: EditText
+    private lateinit var edtLongitud: EditText
+    private lateinit var edtPrecioUnitario: EditText
+    private lateinit var edtTotal: EditText
 
-    // Campos principales
-    private var edtNroProforma: EditText? = null
-    private var edtCliente: EditText? = null
-    private var edtCel: EditText? = null
-    private var edtVendedor: EditText? = null
-    private var edtFecha: EditText? = null
+    // Lista y Adaptador
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var adapter: NotaVentaAdapter
+    private val notasList = mutableListOf<NotaVentaModel>()
 
-    // Campos de producto
-    private var edtProducto: EditText? = null
-    private var edtColor: EditText? = null
-    private var edtCantidad: EditText? = null
-    private var edtLongitud: EditText? = null
-    private var edtPrecioUnitario: EditText? = null
-    private var edtImporte: EditText? = null
+    // Para la cámara
+    private var fotoUriParaRespaldo: Uri? = null
+    private var posicionItemParaFoto: Int = -1
 
-    // Campos de totales
-    private var edtSubtotal: EditText? = null
-    private var edtAnticipo: EditText? = null
-    private var edtSaldo: EditText? = null
-    private var edtTotal: EditText? = null
+    private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) lanzarCamaraParaRespaldo()
+        else Toast.makeText(this, "Se necesita permiso de cámara", Toast.LENGTH_LONG).show()
+    }
 
-    // Campos adicionales
-    private var edtFechaEntrega: EditText? = null
-    private var edtNombreCliente: EditText? = null
-    private var edtNit: EditText? = null
-    private var edtFirmaCaja: EditText? = null
-    private var edtFirmaCliente: EditText? = null
-
-    private var imageCapture: ImageCapture? = null
-    private var cameraExecutor: ExecutorService? = null
-    private var cameraProvider: ProcessCameraProvider? = null
-
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            startCamera()
-        } else {
-            Toast.makeText(this, "Se necesita permiso de cámara para usar esta función", Toast.LENGTH_LONG).show()
-            finish()
+    private val tomarFotoLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) {
+            if (posicionItemParaFoto != -1 && posicionItemParaFoto < notasList.size) {
+                notasList[posicionItemParaFoto].fotoRespaldoUri = fotoUriParaRespaldo.toString()
+                adapter.notifyItemChanged(posicionItemParaFoto)
+                guardarListaEnPrefs()
+                Toast.makeText(this, "Respaldo fotográfico guardado", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_nota_venta)
 
-        try {
-            setContentView(R.layout.activity_nota_venta)
+        inicializarVistas()
+        setupSpinners() // <-- NUEVO: Configurar el Spinner
+        setupDatePicker() // <-- NUEVO: Configurar el selector de fecha
+        cargarListaDesdePrefs()
+        setupRecyclerView()
+        setupBotones()
+    }
 
-            if (initializeViews()) {
-                setupCameraExecutor()
-                checkCameraPermission()
+    private fun inicializarVistas() {
+        edtNroProforma = findViewById(R.id.edtNroProforma)
+        edtCliente = findViewById(R.id.edtCliente)
+        edtVendedor = findViewById(R.id.edtVendedor)
+        edtFecha = findViewById(R.id.edtFecha)
+        spinnerProducto = findViewById(R.id.spinnerProducto) // <-- CAMBIO: Referencia al Spinner
+        edtColor = findViewById(R.id.edtColor)
+        edtCantidad = findViewById(R.id.edtCantidad)
+        edtLongitud = findViewById(R.id.edtLongitud)
+        edtPrecioUnitario = findViewById(R.id.edtPrecioUnitario)
+        edtTotal = findViewById(R.id.edtTotal)
+        recyclerView = findViewById(R.id.recyclerViewNotas)
+
+        // <-- VALIDACIÓN: Nro Proforma solo acepta números
+        edtNroProforma.inputType = InputType.TYPE_CLASS_NUMBER
+    }
+
+    private fun setupSpinners() {
+        val productos = listOf("CALAMINA ONDULADA", "CALAMINA TRAPEZOIDAL", "TEJA COLONIAL", "TEJA AMERICANA", "CUMBRERA CORTE 33", "CUMBRERA CORTE 50")
+        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, productos).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        spinnerProducto.adapter = spinnerAdapter
+    }
+
+    private fun setupDatePicker() {
+        edtFecha.isFocusable = false // Evita que el teclado aparezca
+        edtFecha.isClickable = true
+        edtFecha.setOnClickListener {
+            val calendar = Calendar.getInstance()
+
+            val datePickerDialog = DatePickerDialog(
+                this,
+                { _, year, month, dayOfMonth ->
+                    val selectedDate = Calendar.getInstance()
+                    selectedDate.set(year, month, dayOfMonth)
+                    val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                    edtFecha.setText(format.format(selectedDate.time))
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            )
+
+            // Establecer límites de fecha: 5 años atrás y 5 años adelante
+            val minDate = Calendar.getInstance().apply { add(Calendar.YEAR, -5) }
+            val maxDate = Calendar.getInstance().apply { add(Calendar.YEAR, 5) }
+
+            datePickerDialog.datePicker.minDate = minDate.timeInMillis
+            datePickerDialog.datePicker.maxDate = maxDate.timeInMillis
+
+            datePickerDialog.show()
+        }
+    }
+
+    private fun setupRecyclerView() {
+        adapter = NotaVentaAdapter(notasList, this)
+        recyclerView.adapter = adapter
+        recyclerView.layoutManager = LinearLayoutManager(this)
+    }
+
+    private fun setupBotones() {
+        findViewById<Button>(R.id.btnGuardar).setOnClickListener { guardarNotaVenta() }
+        findViewById<Button>(R.id.btnLimpiar).setOnClickListener { limpiarFormulario() }
+    }
+
+    private fun guardarNotaVenta() {
+        // --- VALIDACIONES MEJORADAS ---
+        if (edtNroProforma.text.isBlank()) {
+            edtNroProforma.error = "Este campo es obligatorio"
+            return
+        }
+        if (edtCliente.text.isBlank()) {
+            edtCliente.error = "Este campo es obligatorio"
+            return
+        }
+        if (spinnerProducto.selectedItemPosition == 0) {
+            Toast.makeText(this, "Debes seleccionar un producto", Toast.LENGTH_SHORT).show()
+            return
+        }
+        // --- FIN DE VALIDACIONES ---
+
+        val nuevaNota = NotaVentaModel(
+            nroProforma = edtNroProforma.text.toString(),
+            cliente = edtCliente.text.toString(),
+            vendedor = edtVendedor.text.toString(),
+            fecha = edtFecha.text.toString(),
+            producto = spinnerProducto.selectedItem.toString(), // <-- CAMBIO: Obtener del Spinner
+            color = edtColor.text.toString(),
+            cantidad = edtCantidad.text.toString(),
+            longitud = edtLongitud.text.toString(),
+            precioUnitario = edtPrecioUnitario.text.toString(),
+            total = edtTotal.text.toString()
+        )
+
+        notasList.add(nuevaNota)
+        adapter.notifyItemInserted(notasList.size - 1)
+        limpiarFormulario()
+        recyclerView.smoothScrollToPosition(notasList.size - 1)
+        guardarListaEnPrefs()
+        Toast.makeText(this, "Nota de venta guardada", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun limpiarFormulario() {
+        val campos = listOf(edtNroProforma, edtCliente, edtVendedor, edtFecha, edtColor, edtCantidad, edtLongitud, edtPrecioUnitario, edtTotal)
+        campos.forEach { it.text.clear() }
+        spinnerProducto.setSelection(0)
+        edtNroProforma.requestFocus()
+    }
+
+    // --- Lógica para la Cámara y Persistencia (Sin cambios) ---
+    override fun onRespaldoButtonClick(position: Int) {
+        if (position >= 0 && position < notasList.size) {
+            val notaSeleccionada = notasList[position]
+            if (!notaSeleccionada.fotoRespaldoUri.isNullOrEmpty()) {
+                verFotoDeRespaldo(notaSeleccionada.fotoRespaldoUri!!.toUri())
             } else {
-                Toast.makeText(this, "Error al cargar la interfaz", Toast.LENGTH_LONG).show()
-                finish()
-            }
-
-        } catch (e: Exception) {
-            Log.e("NotaVenta", "Error crítico en onCreate: ${e.message}", e)
-            Toast.makeText(this, "Error al inicializar la aplicación", Toast.LENGTH_LONG).show()
-            finish()
-        }
-    }
-
-    private fun initializeViews(): Boolean {
-        return try {
-            previewView = findViewById(R.id.previewView)
-            btnCapture = findViewById(R.id.btnCapture)
-            txtResult = findViewById(R.id.txtResult)
-            formLayout = findViewById(R.id.formLayout)
-
-            // Campos principales
-            edtNroProforma = findViewById(R.id.edtNroProforma)
-            edtCliente = findViewById(R.id.edtCliente)
-            edtCel = findViewById(R.id.edtCel)
-            edtVendedor = findViewById(R.id.edtVendedor)
-            edtFecha = findViewById(R.id.edtFecha)
-
-            // Campos de producto
-            edtProducto = findViewById(R.id.edtProducto)
-            edtColor = findViewById(R.id.edtColor)
-            edtCantidad = findViewById(R.id.edtCantidad)
-            edtLongitud = findViewById(R.id.edtLongitud)
-            edtPrecioUnitario = findViewById(R.id.edtPrecioUnitario)
-            edtImporte = findViewById(R.id.edtImporte)
-
-            // Campos de totales
-            edtSubtotal = findViewById(R.id.edtSubtotal)
-            edtAnticipo = findViewById(R.id.edtAnticipo)
-            edtSaldo = findViewById(R.id.edtSaldo)
-            edtTotal = findViewById(R.id.edtTotal)
-
-            // Campos adicionales
-            edtFechaEntrega = findViewById(R.id.edtFechaEntrega)
-            edtNombreCliente = findViewById(R.id.edtNombreCliente)
-            edtNit = findViewById(R.id.edtNit)
-            edtFirmaCaja = findViewById(R.id.edtFirmaCaja)
-            edtFirmaCliente = findViewById(R.id.edtFirmaCliente)
-
-            if (previewView == null || btnCapture == null) {
-                Log.e("NotaVenta", "Vistas esenciales no encontradas")
-                return false
-            }
-
-            btnCapture?.setOnClickListener {
-                capturePhotoToFile()
-            }
-
-            // Botón guardar
-            val btnGuardar: Button? = findViewById(R.id.btnGuardar)
-            btnGuardar?.setOnClickListener {
-                guardarNotaVenta()
-            }
-
-            // Botón limpiar
-            val btnLimpiar: Button? = findViewById(R.id.btnLimpiar)
-            btnLimpiar?.setOnClickListener {
-                limpiarFormulario()
-            }
-
-            // Auto-calcular importe cuando cambian cantidad o precio
-            edtCantidad?.setOnFocusChangeListener { _, _ -> calcularImporte() }
-            edtPrecioUnitario?.setOnFocusChangeListener { _, _ -> calcularImporte() }
-
-            txtResult?.text = "Presiona 'Escanear' para capturar la proforma"
-            formLayout?.visibility = LinearLayout.VISIBLE
-
-            true
-        } catch (e: Exception) {
-            Log.e("NotaVenta", "Error al inicializar vistas: ${e.message}", e)
-            false
-        }
-    }
-
-    private fun setupCameraExecutor() {
-        cameraExecutor = Executors.newSingleThreadExecutor()
-    }
-
-    private fun checkCameraPermission() {
-        when {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
-                startCamera()
-            }
-            else -> {
+                posicionItemParaFoto = position
                 requestPermissionLauncher.launch(Manifest.permission.CAMERA)
             }
         }
     }
 
-    private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-        cameraProviderFuture.addListener({
-            try {
-                cameraProvider = cameraProviderFuture.get()
-                bindCameraUseCases()
-            } catch (exc: Exception) {
-                Log.e("NotaVenta", "Error al inicializar cámara", exc)
-            }
-        }, ContextCompat.getMainExecutor(this))
-    }
-
-    private fun bindCameraUseCases() {
-        val cameraProvider = cameraProvider ?: return
-        val previewView = previewView ?: return
-
+    private fun verFotoDeRespaldo(uri: Uri) {
         try {
-            val preview = Preview.Builder().build()
-            preview.setSurfaceProvider(previewView.surfaceProvider)
-
-            imageCapture = ImageCapture.Builder()
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                .build()
-
-            cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture)
-
-            runOnUiThread {
-                btnCapture?.isEnabled = true
-                txtResult?.text = "Cámara lista. Apunta a la proforma y presiona 'Escanear'"
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "image/jpeg")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-
-        } catch (exc: Exception) {
-            Log.e("NotaVenta", "Error al configurar cámara", exc)
-        }
-    }
-
-    private fun capturePhotoToFile() {
-        val imageCapture = imageCapture ?: return
-        val btnCapture = btnCapture ?: return
-
-        val photoFile = File(externalCacheDir, "temp_${System.currentTimeMillis()}.jpg")
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
-
-        btnCapture.isEnabled = false
-        btnCapture.text = "Escaneando..."
-
-        imageCapture.takePicture(
-            outputOptions,
-            ContextCompat.getMainExecutor(this),
-            object : ImageCapture.OnImageSavedCallback {
-                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    try {
-                        val image = InputImage.fromFilePath(this@NotaVenta, android.net.Uri.fromFile(photoFile))
-                        runOCR(image)
-                        photoFile.delete()
-                    } catch (e: Exception) {
-                        Log.e("NotaVenta", "Error al procesar imagen", e)
-                        resetCaptureButton()
-                    }
-                }
-
-                override fun onError(exception: ImageCaptureException) {
-                    Log.e("NotaVenta", "Error al capturar", exception)
-                    resetCaptureButton()
-                    photoFile.delete()
-                }
-            }
-        )
-    }
-
-    private fun runOCR(image: InputImage) {
-        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-
-        recognizer.process(image)
-            .addOnSuccessListener { visionText ->
-                runOnUiThread {
-                    if (visionText.text.isNotEmpty()) {
-                        txtResult?.text = "Texto detectado y procesado"
-                        parseFormData(visionText.text)
-                        Toast.makeText(this@NotaVenta, "Datos extraídos. Revisa y completa los campos", Toast.LENGTH_LONG).show()
-                    } else {
-                        txtResult?.text = "No se detectó texto. Completa manualmente"
-                    }
-                    resetCaptureButton()
-                }
-            }
-            .addOnFailureListener { e ->
-                runOnUiThread {
-                    txtResult?.text = "Error OCR: ${e.message}"
-                    resetCaptureButton()
-                }
-            }
-    }
-
-    private fun parseFormData(text: String) {
-        try {
-            Log.d("NotaVenta", "Parseando: $text")
-
-            // Número de proforma
-            val numeroPattern = Pattern.compile("N[oº°]\\s*(\\d+)", Pattern.CASE_INSENSITIVE)
-            numeroPattern.matcher(text).takeIf { it.find() }?.let {
-                edtNroProforma?.setText(it.group(1))
-            }
-
-            // Cliente
-            val clientePattern = Pattern.compile("CLIENTE:\\s*([^\\n\\r]+)", Pattern.CASE_INSENSITIVE)
-            clientePattern.matcher(text).takeIf { it.find() }?.let {
-                val cliente = it.group(1)?.trim()
-                edtCliente?.setText(cliente)
-                edtNombreCliente?.setText(cliente) // Mismo valor para ambos campos
-            }
-
-            // Celular/Teléfono
-            val celPattern = Pattern.compile("(?:CEL|CELULAR|TLF|TELEFONO)[:\\s]*([0-9\\s-]+)", Pattern.CASE_INSENSITIVE)
-            celPattern.matcher(text).takeIf { it.find() }?.let {
-                edtCel?.setText(it.group(1)?.trim()?.replace("\\s".toRegex(), ""))
-            }
-
-            // Vendedor
-            val vendedorPattern = Pattern.compile("VENDEDOR[:\\s]*([^\\n\\r]+)", Pattern.CASE_INSENSITIVE)
-            vendedorPattern.matcher(text).takeIf { it.find() }?.let {
-                edtVendedor?.setText(it.group(1)?.trim())
-            }
-
-            // Fecha
-            val fechaPattern = Pattern.compile("FECHA:\\s*([0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{2,4})", Pattern.CASE_INSENSITIVE)
-            fechaPattern.matcher(text).takeIf { it.find() }?.let {
-                edtFecha?.setText(it.group(1))
-            }
-
-            // Productos detectar tipos comunes
-            val productos = listOf("ONDULADO", "TEJA COLONIAL", "TRAPEZOIDAL", "TEJA AMERICANA", "GALVANIZADA", "ZINCALUM")
-            for (producto in productos) {
-                if (text.contains(producto, ignoreCase = true)) {
-                    edtProducto?.setText(producto)
-                    break
-                }
-            }
-
-            // Colores comunes
-            val colores = listOf("ROJO", "VERDE", "AZUL", "BLANCO", "GRIS", "NEGRO", "MARRON", "BEIGE")
-            for (color in colores) {
-                if (text.contains(color, ignoreCase = true)) {
-                    edtColor?.setText(color)
-                    break
-                }
-            }
-
-            // Cantidad (buscar números seguidos de unidades)
-            val cantidadPattern = Pattern.compile("(?:CANT|CANTIDAD)[:\\s]*([0-9]+)", Pattern.CASE_INSENSITIVE)
-            cantidadPattern.matcher(text).takeIf { it.find() }?.let {
-                edtCantidad?.setText(it.group(1))
-            }
-
-            // Longitud (buscar números con metros)
-            val longitudPattern = Pattern.compile("([0-9]+[.,]?[0-9]*)\\s*[mM]", Pattern.CASE_INSENSITIVE)
-            longitudPattern.matcher(text).takeIf { it.find() }?.let {
-                edtLongitud?.setText(it.group(1)?.replace(",", "."))
-            }
-
-            // Precios y totales
-            val precioPattern = Pattern.compile("P[.]?U[.]?[:\\s]*([0-9,]+[.]?[0-9]*)", Pattern.CASE_INSENSITIVE)
-            precioPattern.matcher(text).takeIf { it.find() }?.let {
-                edtPrecioUnitario?.setText(it.group(1)?.replace(",", ""))
-            }
-
-            val importePattern = Pattern.compile("IMPORTE[\\s]*BS[.\\s]*([0-9,]+)", Pattern.CASE_INSENSITIVE)
-            importePattern.matcher(text).takeIf { it.find() }?.let {
-                edtImporte?.setText(it.group(1)?.replace(",", ""))
-            }
-
-            val subtotalPattern = Pattern.compile("SUB[\\s-]*TOTAL[\\s]*BS[.\\s-]*([0-9,]+)", Pattern.CASE_INSENSITIVE)
-            subtotalPattern.matcher(text).takeIf { it.find() }?.let {
-                edtSubtotal?.setText(it.group(1)?.replace(",", ""))
-            }
-
-            val totalPattern = Pattern.compile("TOTAL[\\s]*BS[.\\s-]*([0-9,]+)", Pattern.CASE_INSENSITIVE)
-            totalPattern.matcher(text).takeIf { it.find() }?.let {
-                edtTotal?.setText(it.group(1)?.replace(",", ""))
-            }
-
-            val anticipoPattern = Pattern.compile("ANTICIPO[\\s]*BS[.\\s-]*([0-9,]+)", Pattern.CASE_INSENSITIVE)
-            anticipoPattern.matcher(text).takeIf { it.find() }?.let {
-                edtAnticipo?.setText(it.group(1)?.replace(",", ""))
-            }
-
-            val saldoPattern = Pattern.compile("SALDO[\\s]*BS[.\\s-]*([0-9,]+)", Pattern.CASE_INSENSITIVE)
-            saldoPattern.matcher(text).takeIf { it.find() }?.let {
-                edtSaldo?.setText(it.group(1)?.replace(",", ""))
-            }
-
-            // NIT
-            val nitPattern = Pattern.compile("NIT[:\\s]*([0-9-]+)", Pattern.CASE_INSENSITIVE)
-            nitPattern.matcher(text).takeIf { it.find() }?.let {
-                edtNit?.setText(it.group(1))
-            }
-
+            startActivity(intent)
         } catch (e: Exception) {
-            Log.e("NotaVenta", "Error al parsear: ${e.message}", e)
+            Toast.makeText(this, "No se encontró una aplicación para ver imágenes", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun calcularImporte() {
-        try {
-            val cantidad = edtCantidad?.text.toString().toDoubleOrNull() ?: 0.0
-            val precio = edtPrecioUnitario?.text.toString().toDoubleOrNull() ?: 0.0
-            val importe = cantidad * precio
+    private fun guardarListaEnPrefs() {
+        val prefs = getSharedPreferences("notas_prefs", MODE_PRIVATE)
+        val editor = prefs.edit()
+        val gson = Gson()
+        val json = gson.toJson(notasList)
+        editor.putString("lista_notas", json)
+        editor.apply()
+    }
 
-            if (importe > 0) {
-                edtImporte?.setText(String.format("%.2f", importe))
+    private fun cargarListaDesdePrefs() {
+        try {
+            val prefs = getSharedPreferences("notas_prefs", MODE_PRIVATE)
+            val json = prefs.getString("lista_notas", null)
+            if (json != null) {
+                val gson = Gson()
+                val type = object : TypeToken<MutableList<NotaVentaModel>>() {}.type
+                val listaGuardada: MutableList<NotaVentaModel> = gson.fromJson(json, type)
+                notasList.clear()
+                notasList.addAll(listaGuardada)
             }
         } catch (e: Exception) {
-            Log.e("NotaVenta", "Error al calcular importe", e)
+            Log.e("NotaVenta", "Error al cargar datos", e)
+            notasList.clear()
+            getSharedPreferences("notas_prefs", MODE_PRIVATE).edit().clear().apply()
         }
     }
 
-    private fun guardarNotaVenta() {
-        // Aquí implementarás la conexión a base de datos
-        val datos = mapOf(
-            "nro_proforma" to edtNroProforma?.text.toString(),
-            "cliente" to edtCliente?.text.toString(),
-            "cel" to edtCel?.text.toString(),
-            "vendedor" to edtVendedor?.text.toString(),
-            "fecha" to edtFecha?.text.toString(),
-            "producto" to edtProducto?.text.toString(),
-            "color" to edtColor?.text.toString(),
-            "cantidad" to edtCantidad?.text.toString(),
-            "longitud" to edtLongitud?.text.toString(),
-            "precio_unitario" to edtPrecioUnitario?.text.toString(),
-            "importe" to edtImporte?.text.toString(),
-            "subtotal" to edtSubtotal?.text.toString(),
-            "anticipo" to edtAnticipo?.text.toString(),
-            "saldo" to edtSaldo?.text.toString(),
-            "total" to edtTotal?.text.toString(),
-            "fecha_entrega" to edtFechaEntrega?.text.toString(),
-            "nombre_cliente" to edtNombreCliente?.text.toString(),
-            "nit" to edtNit?.text.toString(),
-            "firma_caja" to edtFirmaCaja?.text.toString(),
-            "firma_cliente" to edtFirmaCliente?.text.toString()
-        )
-
-        Log.d("NotaVenta", "Datos para guardar: $datos")
-        Toast.makeText(this, "Datos preparados para guardar en BD", Toast.LENGTH_LONG).show()
-    }
-
-    private fun limpiarFormulario() {
-        val campos = listOf(
-            edtNroProforma, edtCliente, edtCel, edtVendedor, edtFecha,
-            edtProducto, edtColor, edtCantidad, edtLongitud, edtPrecioUnitario,
-            edtImporte, edtSubtotal, edtAnticipo, edtSaldo, edtTotal,
-            edtFechaEntrega, edtNombreCliente, edtNit, edtFirmaCaja, edtFirmaCliente
-        )
-
-        campos.forEach { it?.setText("") }
-        Toast.makeText(this, "Formulario limpiado", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun resetCaptureButton() {
-        btnCapture?.let {
-            it.isEnabled = true
-            it.text = "Escanear Proforma"
+    private fun lanzarCamaraParaRespaldo() {
+        try {
+            if (Environment.getExternalStorageState() != Environment.MEDIA_MOUNTED) {
+                Toast.makeText(this, "Almacenamiento no disponible.", Toast.LENGTH_LONG).show()
+                return
+            }
+            val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+            if (storageDir == null) {
+                Toast.makeText(this, "No se pudo acceder al almacenamiento.", Toast.LENGTH_LONG).show()
+                return
+            }
+            if (!storageDir.exists()) {
+                storageDir.mkdirs()
+            }
+            val archivoFoto = File.createTempFile("respaldo_${System.currentTimeMillis()}", ".jpg", storageDir)
+            val authority = "$packageName.provider"
+            fotoUriParaRespaldo = FileProvider.getUriForFile(this, authority, archivoFoto)
+            tomarFotoLauncher.launch(fotoUriParaRespaldo)
+        } catch (e: Exception) {
+            Log.e("NotaVenta", "Error al lanzar cámara", e)
+            Toast.makeText(this, "Error inesperado al iniciar la cámara.", Toast.LENGTH_LONG).show()
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        cameraExecutor?.shutdown()
-        cameraProvider?.unbindAll()
     }
 }

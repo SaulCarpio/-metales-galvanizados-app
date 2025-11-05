@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Permite el acceso a CUALQUIER archivo/carpeta dentro del directorio de archivos externos -->
+    <external-files-path name="external_files" path="." />
+
+    <!-- Permite el acceso a CUALQUIER archivo/carpeta dentro del directorio de caché externo -->
+    <external-cache-path name="external_cache" path="." />
+</paths>

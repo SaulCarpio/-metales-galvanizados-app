@@ -8,4 +8,12 @@
     <color name="rojo">#FF4444</color>
     <color name="marfil">#FFFFF0</color>
     <color name="hueso">#F5F5DC</color>
+
+    <color name="colorPrimary">#6200EE</color>
+    <color name="colorPrimaryDark">#3700B3</color>
+    <color name="colorAccent">#03DAC5</color>
+
+    <!-- Puedes añadir más si quieres -->
+    <color name="colorButtonNormal">#6200EE</color> <!-- Mismo que primary -->
+    <color name="colorButtonActive">#008577</color> <!-- Un verde -->
 </resources>

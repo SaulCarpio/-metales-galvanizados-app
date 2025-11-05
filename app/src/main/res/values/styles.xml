@@ -1,0 +1,9 @@
+<resources>
+    <style name="FormEditText">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:padding">12dp</item>
+        <!-- Puedes añadir un fondo personalizado como android:background="@drawable/edittext_background" -->
+    </style>
+</resources>

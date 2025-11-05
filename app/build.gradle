@@ -39,6 +39,8 @@ android {
 }
 
 dependencies {
+
+    implementation 'com.google.code.gson:gson:2.9.0'
     // OpenStreetMap (osmdroid)
     implementation "org.osmdroid:osmdroid-android:6.1.16"
 
